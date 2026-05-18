@@ -1,0 +1,110 @@
+mga2p2.settings:
+  path: '/admin/config/system/mga2p2'
+  defaults:
+    _form: '\Drupal\mga2p2\Form\SettingsForm'
+    _title: 'MGA P2P Settings'
+  requirements:
+    _permission: 'administer mga2p2'
+
+mga2p2.proxy:
+  path: '/binance-proxy'
+  defaults:
+    _controller: '\Drupal\mga2p2\Controller\BinanceProxyController::proxy'
+  methods: [GET, POST, OPTIONS]
+  requirements:
+    _custom_access: '\Drupal\mga2p2\Access\ProxyAccess::check'
+  options:
+    no_cache: TRUE
+    _maintenance_access: TRUE
+
+# ── SPA routes — each one renders the page shell so Vue Router can take over.
+mga2p2.spa.login:
+  path: '/login'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'MGA P2P' }
+  requirements: { _access: 'TRUE' }
+mga2p2.spa.dashboard:
+  path: '/dashboard'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'Dashboard' }
+  requirements: { _access: 'TRUE' }
+mga2p2.spa.orders:
+  path: '/orders'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'Orders' }
+  requirements: { _access: 'TRUE' }
+mga2p2.spa.order_detail:
+  path: '/orders/{id}'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'Order' }
+  requirements: { _access: 'TRUE', id: '[A-Za-z0-9_\-]+' }
+mga2p2.spa.ads:
+  path: '/ads'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'My Ads' }
+  requirements: { _access: 'TRUE' }
+mga2p2.spa.ad_edit:
+  path: '/ads/{id}/edit'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'Edit Ad' }
+  requirements: { _access: 'TRUE', id: '[A-Za-z0-9_\-]+' }
+mga2p2.spa.chat_list:
+  path: '/chat'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'Messages' }
+  requirements: { _access: 'TRUE' }
+mga2p2.spa.chat:
+  path: '/chat/{id}'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'Chat' }
+  requirements: { _access: 'TRUE', id: '[A-Za-z0-9_\-]+' }
+mga2p2.spa.account:
+  path: '/account'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'Account' }
+  requirements: { _access: 'TRUE' }
+mga2p2.spa.notifications:
+  path: '/notifications'
+  defaults: { _controller: '\Drupal\mga2p2\Controller\SpaController::shell', _title: 'Notifications' }
+  requirements: { _access: 'TRUE' }
+
+# ── Receipt form SPA (mga2p2Form theme) + JSON API.
+mga2p2.spa_form.form:
+  path: '/form'
+  defaults:
+    _controller: '\Drupal\mga2p2\Controller\SpaFormController::shell'
+    _title: 'Receipt scan'
+  requirements:
+    _access: 'TRUE'
+
+mga2p2.spa_form.form_sub:
+  path: '/form/{subpath}'
+  defaults:
+    _controller: '\Drupal\mga2p2\Controller\SpaFormController::shell'
+    _title: 'Receipt scan'
+  requirements:
+    _access: 'TRUE'
+    subpath: '.+'
+
+mga2p2.form_api.receipt_preview:
+  path: '/mga2p2/form-api/receipt-preview'
+  defaults:
+    _controller: '\Drupal\mga2p2\Controller\ReceiptFormApiController::preview'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2.form_api.receipt_save:
+  path: '/mga2p2/form-api/receipt-save'
+  defaults:
+    _controller: '\Drupal\mga2p2\Controller\ReceiptFormApiController::save'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2.form_api.receipt_duplicate:
+  path: '/mga2p2/form-api/receipt-duplicate'
+  defaults:
+    _controller: '\Drupal\mga2p2\Controller\ReceiptFormApiController::duplicateCheck'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2.form_api.receipts:
+  path: '/mga2p2/form-api/receipts'
+  defaults:
+    _controller: '\Drupal\mga2p2\Controller\ReceiptFormApiController::listReceipts'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'

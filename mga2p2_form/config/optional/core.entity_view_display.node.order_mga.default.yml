@@ -1,0 +1,123 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.order_mga.body
+    - field.field.node.order_mga.field_mga_bank_name
+    - field.field.node.order_mga.field_mga_currency
+    - field.field.node.order_mga.field_mga_montant
+    - field.field.node.order_mga.field_mga_nom
+    - field.field.node.order_mga.field_mga_payment_type
+    - field.field.node.order_mga.field_mga_phone
+    - field.field.node.order_mga.field_mga_receipt_filename
+    - field.field.node.order_mga.field_mga_reference
+    - field.field.node.order_mga.field_mga_remain_minutes
+    - field.field.node.order_mga.field_mga_status
+    - field.field.node.order_mga.field_mga_user_info
+    - node.type.order_mga
+  module:
+    - options
+    - text
+    - user
+id: node.order_mga.default
+targetEntityType: node
+bundle: order_mga
+mode: default
+content:
+  field_mga_montant:
+    type: string
+    label: above
+    weight: 0
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  field_mga_phone:
+    type: string
+    label: above
+    weight: 1
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  field_mga_nom:
+    type: string
+    label: above
+    weight: 2
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  field_mga_reference:
+    type: string
+    label: above
+    weight: 3
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  field_mga_currency:
+    type: string
+    label: above
+    weight: 4
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  field_mga_bank_name:
+    type: string
+    label: above
+    weight: 5
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  field_mga_status:
+    type: list_default
+    label: above
+    weight: 6
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_mga_payment_type:
+    type: list_default
+    label: above
+    weight: 7
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_mga_remain_minutes:
+    type: number_integer
+    label: above
+    weight: 8
+    region: content
+    settings:
+      thousand_separator: ''
+      prefix_suffix: true
+    third_party_settings: {  }
+  field_mga_user_info:
+    type: text_default
+    label: above
+    weight: 9
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_mga_receipt_filename:
+    type: string
+    label: above
+    weight: 10
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  body:
+    type: text_default
+    label: hidden
+    weight: 25
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  links:
+    weight: 100
+    region: content
+hidden: {  }

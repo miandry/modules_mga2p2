@@ -1,0 +1,5 @@
+mga2p2.settings:
+  title: 'MGA P2P'
+  description: 'Configure Binance API credentials for the MGA P2P app.'
+  parent: system.admin_config_system
+  route_name: mga2p2.settings

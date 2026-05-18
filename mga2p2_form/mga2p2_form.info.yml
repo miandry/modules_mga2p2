@@ -1,0 +1,13 @@
+name: 'MGA2P2 Form'
+type: module
+description: 'Defines the order_mga content type for MGA P2P / form workflows. (Complements the mga2p2Form theme; module machine name is mga2p2_form.)'
+package: Custom
+core_version_requirement: ^9.3 || ^10 || ^11
+dependencies:
+  - drupal:node
+  - drupal:text
+  - drupal:user
+  - drupal:path
+  - drupal:file
+  - drupal:image
+  - drupal:options

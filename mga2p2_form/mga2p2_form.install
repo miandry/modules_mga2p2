@@ -1,0 +1,377 @@
+<?php
+
+/**
+ * @file
+ * Install / update: order_mga optional config + field_image (shared storage).
+ */
+
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Installs missing config from config/optional (skips items already in active).
+ */
+function _mga2p2_form_install_optional_config(): void {
+  $module_path = \Drupal::service('extension.list.module')->getPath('mga2p2_form');
+  $optional = $module_path . '/config/optional';
+  if (!is_dir($optional)) {
+    return;
+  }
+  $storage = new FileStorage($optional, StorageInterface::DEFAULT_COLLECTION);
+  \Drupal::service('config.installer')->installOptionalConfig($storage, []);
+}
+
+/**
+ * Merges field_mga_* widgets from config/optional into existing entity displays.
+ */
+function mga2p2_form_sync_order_mga_field_widgets_from_install_yaml(): void {
+  $module_path = \Drupal::service('extension.list.module')->getPath('mga2p2_form');
+  $base = $module_path . '/config/optional';
+  $form_file = $base . '/core.entity_form_display.node.order_mga.default.yml';
+  if (is_readable($form_file)) {
+    $yaml = Yaml::parseFile($form_file);
+    $display = EntityFormDisplay::load('node.order_mga.default');
+    if ($display && !empty($yaml['content']) && is_array($yaml['content'])) {
+      $changed = FALSE;
+      foreach ($yaml['content'] as $name => $component) {
+        if (strpos((string) $name, 'field_mga_') === 0 && is_array($component) && !$display->getComponent($name)) {
+          $display->setComponent($name, $component);
+          $changed = TRUE;
+        }
+      }
+      if ($changed) {
+        $display->save();
+      }
+    }
+  }
+
+  $view_file = $base . '/core.entity_view_display.node.order_mga.default.yml';
+  if (is_readable($view_file)) {
+    $vyaml = Yaml::parseFile($view_file);
+    $view = EntityViewDisplay::load('node.order_mga.default');
+    if ($view && !empty($vyaml['content']) && is_array($vyaml['content'])) {
+      $vchanged = FALSE;
+      foreach ($vyaml['content'] as $name => $component) {
+        if (strpos((string) $name, 'field_mga_') === 0 && is_array($component) && !$view->getComponent($name)) {
+          $view->setComponent($name, $component);
+          $vchanged = TRUE;
+        }
+      }
+      if ($vchanged) {
+        $view->save();
+      }
+    }
+  }
+}
+
+/**
+ * Optional config + display sync + image (safe to run multiple times).
+ */
+function _mga2p2_form_apply_optional_config_and_displays(): void {
+  _mga2p2_form_install_optional_config();
+  mga2p2_form_sync_order_mga_field_widgets_from_install_yaml();
+  _mga2p2_form_ensure_order_mga_field_image();
+  _mga2p2_form_ensure_order_mga_field_status();
+}
+
+/**
+ * Grants create/edit own order_mga for authenticated and anonymous roles.
+ */
+function _mga2p2_form_grant_order_mga_permissions(): void {
+  $perms = [
+    'create order_mga content',
+    'edit own order_mga content',
+  ];
+  foreach (['authenticated', 'anonymous'] as $rid) {
+    user_role_grant_permissions($rid, $perms);
+  }
+}
+
+/**
+ * Ensures node.field_image storage, order_mga instance, and form/view widgets.
+ */
+function _mga2p2_form_ensure_order_mga_field_image(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_image')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_image',
+      'entity_type' => 'node',
+      'type' => 'image',
+      'settings' => [
+        'target_type' => 'file',
+        'display_field' => FALSE,
+        'display_default' => FALSE,
+        'uri_scheme' => 'public',
+        'default_image' => [
+          'uuid' => NULL,
+          'alt' => '',
+          'title' => '',
+          'width' => NULL,
+          'height' => NULL,
+        ],
+      ],
+      'module' => 'image',
+      'locked' => FALSE,
+      'cardinality' => 1,
+      'translatable' => TRUE,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'order_mga', 'field_image')) {
+    FieldConfig::create([
+      'field_name' => 'field_image',
+      'entity_type' => 'node',
+      'bundle' => 'order_mga',
+      'label' => 'Image',
+      'required' => FALSE,
+      'translatable' => TRUE,
+      'settings' => [
+        'handler' => 'default:file',
+        'handler_settings' => [],
+        'file_directory' => '[date:custom:Y]-[date:custom:m]',
+        'file_extensions' => 'png gif jpg jpeg webp',
+        'max_filesize' => '',
+        'max_resolution' => '',
+        'min_resolution' => '',
+        'alt_field' => TRUE,
+        'alt_field_required' => TRUE,
+        'title_field' => FALSE,
+        'title_field_required' => FALSE,
+        'default_image' => [
+          'uuid' => NULL,
+          'alt' => '',
+          'title' => '',
+          'width' => NULL,
+          'height' => NULL,
+        ],
+      ],
+    ])->save();
+  }
+
+  $form = EntityFormDisplay::load('node.order_mga.default');
+  if ($form && !$form->getComponent('field_image')) {
+    $form->setComponent('field_image', [
+      'type' => 'image_image',
+      'weight' => 20,
+      'region' => 'content',
+      'settings' => [
+        'progress_indicator' => 'throbber',
+        'preview_image_style' => 'thumbnail',
+      ],
+      'third_party_settings' => [],
+    ]);
+    $form->save();
+  }
+
+  $view = EntityViewDisplay::load('node.order_mga.default');
+  if ($view && !$view->getComponent('field_image')) {
+    $view->setComponent('field_image', [
+      'type' => 'image',
+      'label' => 'hidden',
+      'weight' => -10,
+      'region' => 'content',
+      'settings' => [
+        'image_style' => '',
+        'image_link' => '',
+      ],
+      'third_party_settings' => [],
+    ]);
+    $view->save();
+  }
+}
+
+/**
+ * Ensures field_mga_status (list_string) on order_mga + form/view widgets.
+ */
+function _mga2p2_form_ensure_order_mga_field_status(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_mga_status')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_mga_status',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'settings' => [
+        'allowed_values' => [
+          'en_cours' => 'En cours',
+          'paye' => 'Payé',
+          'archive' => 'Archive',
+        ],
+      ],
+      'module' => 'options',
+      'locked' => FALSE,
+      'cardinality' => 1,
+      'translatable' => TRUE,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'order_mga', 'field_mga_status')) {
+    FieldConfig::create([
+      'field_name' => 'field_mga_status',
+      'entity_type' => 'node',
+      'bundle' => 'order_mga',
+      'label' => 'Statut',
+      'description' => 'Cycle de vie de la commande (reçu / paiement).',
+      'required' => FALSE,
+      'translatable' => TRUE,
+      'default_value' => [
+        ['value' => 'en_cours'],
+      ],
+      'settings' => [],
+    ])->save();
+  }
+
+  $form = EntityFormDisplay::load('node.order_mga.default');
+  if ($form && !$form->getComponent('field_mga_status')) {
+    $form->setComponent('field_mga_status', [
+      'type' => 'options_select',
+      'weight' => 6,
+      'region' => 'content',
+      'settings' => [],
+      'third_party_settings' => [],
+    ]);
+    $form->save();
+  }
+
+  $view = EntityViewDisplay::load('node.order_mga.default');
+  if ($view && !$view->getComponent('field_mga_status')) {
+    $view->setComponent('field_mga_status', [
+      'type' => 'list_default',
+      'label' => 'above',
+      'weight' => 6,
+      'region' => 'content',
+      'settings' => [],
+      'third_party_settings' => [],
+    ]);
+    $view->save();
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function mga2p2_form_install(): void {
+  _mga2p2_form_apply_optional_config_and_displays();
+  _mga2p2_form_grant_order_mga_permissions();
+  _mga2p2_form_webpush_ensure_vapid_keys();
+}
+
+/**
+ * Add field_image to order_mga for sites installed before this field existed.
+ */
+function mga2p2_form_update_9001(): void {
+  _mga2p2_form_ensure_order_mga_field_image();
+}
+
+/**
+ * Install receipt-style fields + sync displays (legacy: used install/ folder).
+ */
+function mga2p2_form_update_9002(): void {
+  _mga2p2_form_apply_optional_config_and_displays();
+}
+
+/**
+ * Re-apply optional config after move install → optional (sites already at 9002).
+ */
+function mga2p2_form_update_9003(): void {
+  _mga2p2_form_apply_optional_config_and_displays();
+}
+
+/**
+ * Grant create order_mga to authenticated and anonymous (receipt /form API).
+ */
+function mga2p2_form_update_9004(): void {
+  _mga2p2_form_grant_order_mga_permissions();
+}
+
+/**
+ * Add field_mga_status (en_cours / paye / archive) to order_mga.
+ */
+function mga2p2_form_update_9005(): void {
+  _mga2p2_form_apply_optional_config_and_displays();
+}
+
+/**
+ * Web Push: subscription table + VAPID keys for order status notifications.
+ */
+function mga2p2_form_update_9006(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('mga2p2_form_push_subscription')) {
+    $spec = mga2p2_form_schema()['mga2p2_form_push_subscription'];
+    $schema->createTable('mga2p2_form_push_subscription', $spec);
+  }
+  _mga2p2_form_webpush_ensure_vapid_keys();
+}
+
+/**
+ * Implements hook_schema().
+ */
+function mga2p2_form_schema(): array {
+  $schema['mga2p2_form_push_subscription'] = [
+    'description' => 'Web Push subscriptions for order_mga status alerts.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'endpoint_hash' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ],
+      'endpoint' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+      'p256dh' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'auth' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'endpoint_hash' => ['endpoint_hash'],
+    ],
+  ];
+  return $schema;
+}
+
+/**
+ * Generates VAPID keys (requires minishlink/web-push via Composer).
+ */
+function _mga2p2_form_webpush_ensure_vapid_keys(): void {
+  $editable = \Drupal::configFactory()->getEditable('mga2p2_form.webpush');
+  if ($editable->get('vapid_public') && $editable->get('vapid_private')) {
+    return;
+  }
+  if (!class_exists(\Minishlink\WebPush\VAPID::class)) {
+    return;
+  }
+  $keys = \Minishlink\WebPush\VAPID::createVapidKeys();
+  if (empty($keys['publicKey']) || empty($keys['privateKey'])) {
+    return;
+  }
+  if (!$editable->get('vapid_subject')) {
+    $editable->set('vapid_subject', 'mailto:mga2p2-push@localhost');
+  }
+  $editable->set('vapid_public', $keys['publicKey']);
+  $editable->set('vapid_private', $keys['privateKey']);
+  $editable->set('enabled', TRUE);
+  $editable->save(TRUE);
+}

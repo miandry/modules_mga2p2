@@ -1,0 +1,186 @@
+<?php
+
+/**
+ * @file
+ * Database schema for receipt AI extractions.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function mga2p2_schema() {
+  $schema['mga2p2_receipt_extractions'] = [
+    'description' => 'Fields extracted from receipt images by AI.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'montant' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'phone' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'reference' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'bank_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'currency' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => FALSE,
+      ],
+      'raw_json' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+      ],
+      'filename' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'payment_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+        'description' => 'mvola or orange.',
+      ],
+      'remain_minutes' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 20,
+        'description' => 'Remaining time window in minutes.',
+      ],
+      'user_info' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Free-form user / context notes.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'created' => ['created'],
+    ],
+  ];
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function mga2p2_install() {
+  $schema = mga2p2_schema();
+  $connection = \Drupal::database();
+  foreach ($schema as $name => $table) {
+    if (!$connection->schema()->tableExists($name)) {
+      $connection->schema()->createTable($name, $table);
+    }
+  }
+}
+
+/**
+ * Create receipt extractions table on existing sites.
+ */
+function mga2p2_update_9101() {
+  $schema = mga2p2_schema();
+  $connection = \Drupal::database();
+  foreach ($schema as $name => $table) {
+    if (!$connection->schema()->tableExists($name)) {
+      $connection->schema()->createTable($name, $table);
+    }
+  }
+}
+
+/**
+ * Ensure OpenAI-related config keys exist (Receipt AI / mga2p2Form).
+ */
+function mga2p2_update_9102() {
+  $editable = \Drupal::configFactory()->getEditable('mga2p2.settings');
+  $defaults = [
+    'openai_api_key' => '',
+    'openai_base_url' => 'https://api.openai.com/v1',
+    'openai_model' => 'gpt-4o-mini',
+  ];
+  $changed = FALSE;
+  foreach ($defaults as $key => $default) {
+    if ($editable->get($key) === NULL) {
+      $editable->set($key, $default);
+      $changed = TRUE;
+    }
+  }
+  if ($changed) {
+    $editable->save();
+  }
+}
+
+/**
+ * Add payment_type, remain_minutes, user_info to receipt extractions.
+ */
+function mga2p2_update_9103() {
+  $schema = \Drupal::database()->schema();
+  $table = 'mga2p2_receipt_extractions';
+  if (!$schema->tableExists($table)) {
+    return;
+  }
+  if (!$schema->fieldExists($table, 'payment_type')) {
+    $schema->addField($table, 'payment_type', [
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => FALSE,
+    ]);
+  }
+  if (!$schema->fieldExists($table, 'remain_minutes')) {
+    $schema->addField($table, 'remain_minutes', [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 20,
+    ]);
+  }
+  if (!$schema->fieldExists($table, 'user_info')) {
+    $schema->addField($table, 'user_info', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+    ]);
+  }
+}
+
+/**
+ * Ensure receipt extractions table exists (sites that missed 9101 / manual DB).
+ */
+function mga2p2_update_9104() {
+  $schema = mga2p2_schema();
+  $connection = \Drupal::database();
+  foreach ($schema as $name => $table) {
+    if (!$connection->schema()->tableExists($name)) {
+      $connection->schema()->createTable($name, $table);
+    }
+  }
+}

@@ -1,0 +1,7 @@
+services:
+  mga2p2_form.web_push_notifier:
+    class: Drupal\mga2p2_form\Service\WebPushNotifier
+    arguments:
+      - '@config.factory'
+      - '@database'
+      - '@logger.factory'

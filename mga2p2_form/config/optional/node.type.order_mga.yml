@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Order MGA'
+type: order_mga
+description: 'P2P or payment order record (MGA).'
+help: ''
+new_revision: true
+preview_mode: 1
+display_submitted: false

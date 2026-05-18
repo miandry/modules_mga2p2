@@ -1,0 +1,4 @@
+enabled: false
+vapid_subject: 'mailto:mga2p2-push@localhost'
+vapid_public: ''
+vapid_private: ''

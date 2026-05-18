@@ -1,0 +1,44 @@
+<?php
+
+/**
+ * @file
+ * Content type order_mga and related config (see config/install).
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_entity_update().
+ */
+function mga2p2_form_entity_update(EntityInterface $entity): void {
+  if (!$entity instanceof NodeInterface || $entity->bundle() !== 'order_mga') {
+    return;
+  }
+  if (!$entity->hasField('field_mga_status')) {
+    return;
+  }
+  $original = $entity->original;
+  if (!$original instanceof NodeInterface) {
+    return;
+  }
+  $prev = $original->get('field_mga_status')->isEmpty() ? 'en_cours' : (string) $original->get('field_mga_status')->value;
+  $new = $entity->get('field_mga_status')->isEmpty() ? 'en_cours' : (string) $entity->get('field_mga_status')->value;
+  if ($prev === $new) {
+    return;
+  }
+  $phone = '';
+  if ($entity->hasField('field_mga_phone') && !$entity->get('field_mga_phone')->isEmpty()) {
+    $phone = trim((string) $entity->get('field_mga_phone')->value);
+  }
+  $name = '';
+  if ($entity->hasField('field_mga_nom') && !$entity->get('field_mga_nom')->isEmpty()) {
+    $name = trim((string) $entity->get('field_mga_nom')->value);
+  }
+  try {
+    \Drupal::service('mga2p2_form.web_push_notifier')->notifyOrderStatusChange((int) $entity->id(), $entity->getTitle(), $prev, $new, $phone, $name);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('mga2p2_form')->error('Web push on entity update: @m', ['@m' => $e->getMessage()]);
+  }
+}

@@ -1,0 +1,8 @@
+administer mga2p2:
+  title: 'Administer MGA P2P settings'
+  description: 'Configure Binance API credentials and proxy options.'
+  restrict access: true
+
+use mga2p2 proxy:
+  title: 'Use the Binance API proxy'
+  description: 'Allows the user to call the /binance-proxy endpoint. Grant carefully — every request consumes the configured Binance API key.'

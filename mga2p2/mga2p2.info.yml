@@ -1,0 +1,6 @@
+name: 'MGA P2P'
+type: module
+description: 'Binance P2P manager backend — secure server-side proxy and admin settings for the mga2p2 theme.'
+package: Custom
+core_version_requirement: ^8.9 || ^9 || ^10 || ^11
+configure: mga2p2.settings

@@ -1,0 +1,16 @@
+mga2p2_form.webpush:
+  type: config_object
+  label: 'Web push (order status)'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Send push when order status changes'
+    vapid_subject:
+      type: string
+      label: 'VAPID subject (mailto: or https URL)'
+    vapid_public:
+      type: string
+      label: 'VAPID public key'
+    vapid_private:
+      type: string
+      label: 'VAPID private key'

@@ -1,0 +1,18 @@
+services:
+  mga2p2.binance_client:
+    class: Drupal\mga2p2\BinanceClient
+    arguments:
+      - '@config.factory'
+      - '@logger.factory'
+
+  mga2p2.ai_receipt_extractor:
+    class: Drupal\mga2p2\AiReceiptExtractor
+    arguments:
+      - '@config.factory'
+      - '@http_client'
+      - '@logger.factory'
+
+  theme.negotiator.mga2p2_form:
+    class: Drupal\mga2p2\Theme\FormThemeNegotiator
+    tags:
+      - { name: theme_negotiator, priority: 15 }

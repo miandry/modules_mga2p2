@@ -1,0 +1,73 @@
+mga2p2_form.api.order_save:
+  path: '/mga2p2-form/api/order-save'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\OrderSaveApiController::save'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.order_mga_detail:
+  path: '/mga2p2-form/api/order-mga/{nid}'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\OrderMgaDetailApiController::getOrder'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    nid: \d+
+
+mga2p2_form.api.order_mga_list:
+  path: '/mga2p2-form/api/orders'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\OrderMgaListApiController::index'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.order_mga_set_status:
+  path: '/mga2p2-form/api/order-mga-status'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\OrderMgaSetStatusApiController::setStatus'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.order_mga_mark_paye_proof:
+  path: '/mga2p2-form/api/order-mga/{nid}/mark-paye-proof'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\OrderMgaSetStatusApiController::markPayeWithProof'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    nid: \d+
+
+mga2p2_form.order_push_sw:
+  path: '/mga2p2-form/order-push-sw.js'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\OrderPushSwController::serve'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.push_config:
+  path: '/mga2p2-form/api/push-config'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\PushConfigApiController::index'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.push_subscribe:
+  path: '/mga2p2-form/api/push-subscribe'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\PushSubscribeApiController::subscribe'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.push_unsubscribe:
+  path: '/mga2p2-form/api/push-unsubscribe'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\PushSubscribeApiController::unsubscribe'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'

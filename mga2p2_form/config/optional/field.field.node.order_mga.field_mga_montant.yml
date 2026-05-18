@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mga_montant
+    - node.type.order_mga
+id: node.order_mga.field_mga_montant
+field_name: field_mga_montant
+entity_type: node
+bundle: order_mga
+label: Montant
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mga_user_info
+    - node.type.order_mga
+  module:
+    - text
+id: node.order_mga.field_mga_user_info
+field_name: field_mga_user_info
+entity_type: node
+bundle: order_mga
+label: 'Infos utilisateur'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

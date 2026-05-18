@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mga_payment_type
+    - node.type.order_mga
+  module:
+    - options
+id: node.order_mga.field_mga_payment_type
+field_name: field_mga_payment_type
+entity_type: node
+bundle: order_mga
+label: 'Type de paiement'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string
