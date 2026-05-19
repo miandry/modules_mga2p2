@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Url;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\file\FileInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -121,6 +122,7 @@ class OrderMgaListApiController extends ControllerBase {
           'bank_name' => $this->fieldString($node, 'field_mga_bank_name'),
           'payment_type' => $this->fieldString($node, 'field_mga_payment_type'),
           'status' => $this->orderMgaStatusValue($node),
+          'payment_proof_url' => $this->paymentProofUrl($node),
         ];
       }
     }
@@ -191,6 +193,20 @@ class OrderMgaListApiController extends ControllerBase {
   private function orderMgaStatusValue(NodeInterface $node): string {
     $v = $this->fieldString($node, 'field_mga_status');
     return $v !== NULL ? $v : 'en_cours';
+  }
+
+  /**
+   * Public URL path for field_image (payment proof), if present.
+   */
+  private function paymentProofUrl(NodeInterface $node): ?string {
+    if (!$node->hasField('field_image') || $node->get('field_image')->isEmpty()) {
+      return NULL;
+    }
+    $file = $node->get('field_image')->entity;
+    if (!$file instanceof FileInterface) {
+      return NULL;
+    }
+    return \Drupal::service('file_url_generator')->generateString($file->getFileUri());
   }
 
 }
