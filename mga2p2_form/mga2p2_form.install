@@ -256,6 +256,8 @@ function mga2p2_form_install(): void {
   _mga2p2_form_apply_optional_config_and_displays();
   _mga2p2_form_grant_order_mga_permissions();
   _mga2p2_form_webpush_ensure_vapid_keys();
+  _mga2p2_form_ensure_mobile_ussd_config();
+  _mga2p2_form_grant_mobile_ussd_settings_permission();
 }
 
 /**
@@ -303,6 +305,46 @@ function mga2p2_form_update_9006(): void {
     $schema->createTable('mga2p2_form_push_subscription', $spec);
   }
   _mga2p2_form_webpush_ensure_vapid_keys();
+}
+
+/**
+ * Default MVola / Orange Money USSD patterns for the form app (orders list links).
+ */
+function mga2p2_form_update_9007(): void {
+  _mga2p2_form_ensure_mobile_ussd_config();
+}
+
+/**
+ * Grant permission to manage mobile USSD settings (GET/POST API for /form/settings/mobile-ussd).
+ */
+function mga2p2_form_update_9008(): void {
+  _mga2p2_form_grant_mobile_ussd_settings_permission();
+}
+
+/**
+ * Grants manage_mga2p2_form_mobile_ussd_settings to the administrator role.
+ */
+function _mga2p2_form_grant_mobile_ussd_settings_permission(): void {
+  $perm = 'manage_mga2p2_form_mobile_ussd_settings';
+  $role = \Drupal\user\Entity\Role::load('administrator');
+  if ($role && !$role->hasPermission($perm)) {
+    $role->grantPermission($perm);
+    $role->save();
+  }
+}
+
+/**
+ * Creates mga2p2_form.mobile_ussd config when missing (idempotent).
+ */
+function _mga2p2_form_ensure_mobile_ussd_config(): void {
+  $editable = \Drupal::configFactory()->getEditable('mga2p2_form.mobile_ussd');
+  if ((string) $editable->get('mvola_pattern') !== '') {
+    return;
+  }
+  $editable
+    ->set('mvola_pattern', '#111*1*3*3*1*NUM*MONTANT*1#')
+    ->set('orange_pattern', '#144*1*1*NUMÉRO*MONTANT#')
+    ->save(TRUE);
 }
 
 /**

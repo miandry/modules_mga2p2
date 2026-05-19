@@ -26,7 +26,11 @@ class OrderMgaListApiController extends ControllerBase {
   public function index(Request $request): JsonResponse {
     $type = $this->entityTypeManager()->getStorage('node_type')->load('order_mga');
     if ($type === NULL) {
-      return new JsonResponse(['error' => 'Content type order_mga is not installed.', 'data' => []], 503);
+      return new JsonResponse([
+        'error' => 'Content type order_mga is not installed.',
+        'data' => [],
+        'mobile_ussd' => $this->mobileUssdPatternsForClient(),
+      ], 503);
     }
 
     $limit = (int) $request->query->get('limit', 5);
@@ -124,7 +128,27 @@ class OrderMgaListApiController extends ControllerBase {
     return new JsonResponse([
       'data' => $items,
       'has_more' => $hasMore,
+      'mobile_ussd' => $this->mobileUssdPatternsForClient(),
     ]);
+  }
+
+  /**
+   * @return array{mvola_pattern: string, orange_pattern: string}
+   */
+  private function mobileUssdPatternsForClient(): array {
+    $config = $this->config('mga2p2_form.mobile_ussd');
+    $mvola = trim((string) $config->get('mvola_pattern'));
+    $orange = trim((string) $config->get('orange_pattern'));
+    if ($mvola === '') {
+      $mvola = '#111*1*3*3*1*NUM*MONTANT*1#';
+    }
+    if ($orange === '') {
+      $orange = '#144*1*1*NUMÉRO*MONTANT#';
+    }
+    return [
+      'mvola_pattern' => $mvola,
+      'orange_pattern' => $orange,
+    ];
   }
 
   private function applyStatusFilter(QueryInterface $query, string $statusFilter): void {

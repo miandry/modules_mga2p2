@@ -23,6 +23,39 @@ mga2p2_form.api.order_mga_list:
   requirements:
     _access: 'TRUE'
 
+mga2p2_form.api.mobile_ussd_settings_get:
+  path: '/mga2p2-form/api/mobile-ussd-settings'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\MobileUssdSettingsApiController::get'
+  methods: [GET]
+  requirements:
+    _permission: 'manage_mga2p2_form_mobile_ussd_settings'
+
+mga2p2_form.api.mobile_ussd_settings_post:
+  path: '/mga2p2-form/api/mobile-ussd-settings'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\MobileUssdSettingsApiController::post'
+  methods: [POST]
+  requirements:
+    _permission: 'manage_mga2p2_form_mobile_ussd_settings'
+
+# Alias paths (same controller) — mirrors SPA route /form/settings/mobile-ussd
+mga2p2_form.api.form_settings_mobile_ussd_get:
+  path: '/mga2p2-form/api/form/settings/mobile-ussd'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\MobileUssdSettingsApiController::get'
+  methods: [GET]
+  requirements:
+    _permission: 'manage_mga2p2_form_mobile_ussd_settings'
+
+mga2p2_form.api.form_settings_mobile_ussd_post:
+  path: '/mga2p2-form/api/form/settings/mobile-ussd'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\MobileUssdSettingsApiController::post'
+  methods: [POST]
+  requirements:
+    _permission: 'manage_mga2p2_form_mobile_ussd_settings'
+
 mga2p2_form.api.order_mga_set_status:
   path: '/mga2p2-form/api/order-mga-status'
   defaults:

@@ -82,6 +82,12 @@ Look for:
 - A person's name (e.g. Ynnocente, Marie, Jean)
 These will appear together in a left-side message, often as the last message in the chat.
 
+AMOUNT EXTRACTION RULE:
+Extract the integer part only — strip decimals and all separators (commas, dots), keep digits only.
+- "1,103,941.83" → "1103941"
+- "500,000.50" → "500000"
+- "2,000.00" → "2000"
+
 MOBILE OPERATOR DETECTION RULE (Madagascar):
 Derive bank_name automatically from the first 3 digits of the phone number found:
 - Starts with 032 or 037 → bank_name = "Orange Money"
@@ -89,7 +95,7 @@ Derive bank_name automatically from the first 3 digits of the phone number found
 - Any other prefix → bank_name = null
 
 Return a single JSON object with these keys (use null if not visible):
-montant (string, the transaction amount as printed, e.g. "1,103,941.83"),
+montant (string, integer digits only, no separators, no decimals, e.g. "1103941"),
 phone (string, phone number from LEFT bubble only),
 name (string, payer/beneficiary name from LEFT bubble only),
 reference (string, order/transaction reference, e.g. "xx0288"),

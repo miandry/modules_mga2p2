@@ -1,3 +1,14 @@
+mga2p2_form.mobile_ussd:
+  type: config_object
+  label: 'Mobile USSD code patterns (form / orders)'
+  mapping:
+    mvola_pattern:
+      type: string
+      label: 'MVola USSD pattern (placeholders NUM, MONTANT = digits only)'
+    orange_pattern:
+      type: string
+      label: 'Orange Money USSD pattern (placeholders NUMÉRO or NUMERO or NUM, MONTANT)'
+
 mga2p2_form.webpush:
   type: config_object
   label: 'Web push (order status)'

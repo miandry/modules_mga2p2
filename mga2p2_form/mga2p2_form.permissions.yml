@@ -1,0 +1,4 @@
+manage_mga2p2_form_mobile_ussd_settings:
+  title: 'Manage mobile USSD patterns (MGA2P2 form)'
+  description: 'Read and save MVola / Orange Money USSD code templates for the /form app (e.g. /form/settings/mobile-ussd).'
+  restrict access: true
