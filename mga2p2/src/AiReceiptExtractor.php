@@ -25,6 +25,54 @@ class AiReceiptExtractor {
   }
 
   /**
+   * Digits-only MSISDN; strips country code 261 when present.
+   *
+   * Normalizes to national form with leading 0 (03X…) when the model omits it
+   * after +261 (e.g. 386252137 → 0386252137).
+   */
+  protected function normalizeMadagascarLocalMobile(string $raw): string {
+    $d = preg_replace('/\D+/', '', $raw);
+    if ($d === NULL || $d === '') {
+      return '';
+    }
+    if (str_starts_with($d, '261')) {
+      $d = substr($d, 3);
+    }
+    if ($d === '') {
+      return '';
+    }
+    if (str_starts_with($d, '0') && strlen($d) >= 3) {
+      return $d;
+    }
+    // National significant number without leading 0 (e.g. 34xxxxxxxx, 38xxxxxxx).
+    if (strlen($d) >= 2 && $d[0] === '3') {
+      return '0' . $d;
+    }
+    return $d;
+  }
+
+  /**
+   * Derives mobile-money label from Malagasy mobile prefix (must match vision prompt).
+   */
+  protected function inferMadagascarBankNameFromPhone(?string $phone): ?string {
+    if ($phone === NULL || $phone === '') {
+      return NULL;
+    }
+    $d = $this->normalizeMadagascarLocalMobile($phone);
+    if (strlen($d) < 3) {
+      return NULL;
+    }
+    $p3 = substr($d, 0, 3);
+    if (in_array($p3, ['032', '037'], TRUE)) {
+      return 'Orange Money';
+    }
+    if (in_array($p3, ['034', '038'], TRUE)) {
+      return 'MVola';
+    }
+    return NULL;
+  }
+
+  /**
    * Whether API key is configured.
    */
   public function isConfigured(): bool {
@@ -77,32 +125,38 @@ You analyse P2P crypto trading chat screenshots (e.g. Binance P2P, OKX P2P).
 
 IMPORTANT RULE: The buyer's payment details (phone number and name) are ALWAYS sent by the LEFT-side message bubbles (the counterpart/seller messages). Ignore any right-side bubbles for extracting phone and name.
 
-Look for:
-- A phone number (local or international format, e.g. 0376981483)
-- A person's name (e.g. Ynnocente, Marie, Jean)
-These will appear together in a left-side message, often as the last message in the chat.
+TODAY ONLY RULE:
+ONLY extract information from messages sent TODAY (after the "Aujourd'hui" separator).
+Ignore ALL messages from previous days entirely.
+If no phone number or name is found in today's messages, return "NOT_FOUND" for that field instead of null.
+
+Look for in LEFT bubbles (today only):
+- A phone number (local format, e.g. 0386252137). It may appear in its own separate bubble.
+- A person's name (e.g. saholinirina Asminah). It may appear in its own separate bubble.
+Phone and name are often sent as separate consecutive left-side bubbles — treat them as a group.
 
 AMOUNT EXTRACTION RULE:
 Extract the integer part only — strip decimals and all separators (commas, dots), keep digits only.
+- "716,007.25" → "716007"
 - "1,103,941.83" → "1103941"
-- "500,000.50" → "500000"
-- "2,000.00" → "2000"
+Amount is taken from the header/title of the chat (e.g. "Acheter des USDT avec Ar716,007.25").
 
-MOBILE OPERATOR DETECTION RULE (Madagascar):
-Derive bank_name automatically from the first 3 digits of the phone number found:
+MOBILE OPERATOR DETECTION RULE (Madagascar) — apply strictly based on exact prefix:
 - Starts with 032 or 037 → bank_name = "Orange Money"
 - Starts with 034 or 038 → bank_name = "MVola"
 - Any other prefix → bank_name = null
+Example: 0386252137 starts with 038 → bank_name = "MVola"
+Example: 0376981483 starts with 037 → bank_name = "Orange Money"
 
-Return a single JSON object with these keys (use null if not visible):
-montant (string, integer digits only, no separators, no decimals, e.g. "1103941"),
-phone (string, phone number from LEFT bubble only),
-name (string, payer/beneficiary name from LEFT bubble only),
-reference (string, order/transaction reference, e.g. "xx0288"),
-bank_name (string, derived from phone prefix as per rule above),
-currency (string, ISO or symbol, e.g. "MGA", "Ar", "USDT").
+Return a single JSON object with these keys:
+montant (string, integer digits only, no separators, no decimals, e.g. "716007"),
+phone (string, phone from today's LEFT bubbles only, or "NOT_FOUND"),
+name (string, name from today's LEFT bubbles only, or "NOT_FOUND"),
+reference (string, most recent order reference from today, e.g. "xx3776", or "NOT_FOUND"),
+bank_name (string, derived from phone prefix, or null if phone is "NOT_FOUND"),
+currency (string, ISO or symbol, e.g. "MGA", "Ar", "USDT", or "NOT_FOUND").
 
-Do not invent values; use null when unsure.
+Do not invent values; use "NOT_FOUND" when today's messages don't contain the information.
 PROMPT;
 
     $payload = [
@@ -159,6 +213,14 @@ PROMPT;
     if (!is_array($fields)) {
       $this->logger->warning('Model returned non-JSON content: @c', ['@c' => substr($content, 0, 500)]);
       throw new \RuntimeException('Model did not return valid JSON.');
+    }
+
+    // Override LLM bank_name when we can infer operator from digits (model may pick wrong bubble/UI text).
+    $phoneRaw = $fields['phone'] ?? '';
+    $phoneRaw = is_string($phoneRaw) || is_int($phoneRaw) || is_float($phoneRaw) ? (string) $phoneRaw : '';
+    $inferredBank = $this->inferMadagascarBankNameFromPhone($phoneRaw);
+    if ($inferredBank !== NULL) {
+      $fields['bank_name'] = $inferredBank;
     }
 
     return $fields;
