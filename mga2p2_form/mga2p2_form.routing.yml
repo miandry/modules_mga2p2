@@ -1,3 +1,27 @@
+mga2p2_form.api.session:
+  path: '/mga2p2-form/api/session'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\FormSessionApiController::session'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.login:
+  path: '/mga2p2-form/api/login'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\FormSessionApiController::login'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.logout:
+  path: '/mga2p2-form/api/logout'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\FormSessionApiController::logout'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
 mga2p2_form.api.order_save:
   path: '/mga2p2-form/api/order-save'
   defaults:
