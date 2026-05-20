@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Request;
 class OrderMgaListApiController extends ControllerBase {
 
   /**
-   * GET ?limit=5&offset=0&status=en_cours|paye|archive&search=… — newest first.
+   * GET ?limit=5&offset=0&status=en_cours|paye|pay_en_cours|archive&search=… — newest first.
    *
    * Pagination: use offset with limit (default 5, max 100). Response includes has_more
    * (true when another page exists). One extra row is queried to compute has_more.
@@ -42,7 +42,7 @@ class OrderMgaListApiController extends ControllerBase {
 
     $statusParam = $request->query->get('status', '');
     $statusFilter = is_string($statusParam) ? strtolower(trim($statusParam)) : '';
-    if ($statusFilter !== '' && !in_array($statusFilter, ['en_cours', 'paye', 'archive'], TRUE)) {
+    if ($statusFilter !== '' && !in_array($statusFilter, ['en_cours', 'paye', 'pay_en_cours', 'archive'], TRUE)) {
       $statusFilter = '';
     }
 
@@ -89,41 +89,7 @@ class OrderMgaListApiController extends ControllerBase {
         if (!$node instanceof NodeInterface) {
           continue;
         }
-        $created = (int) $node->getCreatedTime();
-        $remainMin = 20;
-        if ($node->hasField('field_mga_remain_minutes') && !$node->get('field_mga_remain_minutes')->isEmpty()) {
-          $remainMin = max(1, min(600, (int) $node->get('field_mga_remain_minutes')->value));
-        }
-        $deadline = $created + $remainMin * 60;
-        $remaining = max(0, $deadline - $now);
-
-        $path = '/node/' . $node->id();
-        try {
-          $path = Url::fromRoute('entity.node.canonical', ['node' => $node->id()], ['absolute' => FALSE])->toString();
-        }
-        catch (\Throwable $e) {
-          // Keep /node/N.
-        }
-
-        $items[] = [
-          'nid' => (int) $node->id(),
-          'title' => $node->getTitle(),
-          'path' => $path,
-          'created' => $created,
-          'remain_minutes' => $remainMin,
-          'deadline' => $deadline,
-          'remaining_seconds' => $remaining,
-          'expired' => $remaining <= 0,
-          'montant' => $this->fieldString($node, 'field_mga_montant'),
-          'phone' => $this->fieldString($node, 'field_mga_phone'),
-          'nom' => $this->fieldString($node, 'field_mga_nom'),
-          'reference' => $this->fieldString($node, 'field_mga_reference'),
-          'currency' => $this->fieldString($node, 'field_mga_currency'),
-          'bank_name' => $this->fieldString($node, 'field_mga_bank_name'),
-          'payment_type' => $this->fieldString($node, 'field_mga_payment_type'),
-          'status' => $this->orderMgaStatusValue($node),
-          'payment_proof_url' => $this->paymentProofUrl($node),
-        ];
+        $items[] = $this->buildListItem($node, $now);
       }
     }
 
@@ -132,6 +98,121 @@ class OrderMgaListApiController extends ControllerBase {
       'has_more' => $hasMore,
       'mobile_ussd' => $this->mobileUssdPatternsForClient(),
     ]);
+  }
+
+  /**
+   * GET ?montant_int=150000 — order_mga en_cours whose montant integer part matches.
+   */
+  public function matchMontant(Request $request): JsonResponse {
+    $type = $this->entityTypeManager()->getStorage('node_type')->load('order_mga');
+    if ($type === NULL) {
+      return new JsonResponse([
+        'error' => 'Content type order_mga is not installed.',
+        'data' => [],
+      ], 503);
+    }
+
+    $raw = $request->query->get('montant_int', '');
+    if (!is_numeric($raw)) {
+      return new JsonResponse(['error' => 'Query parameter montant_int is required.'], 400);
+    }
+    $target = (int) floor((float) $raw + 1e-9);
+    if ($target < 1) {
+      return new JsonResponse(['error' => 'montant_int must be a positive integer.'], 400);
+    }
+
+    $query = $this->entityTypeManager()
+      ->getStorage('node')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'order_mga')
+      ->condition('status', NodeInterface::PUBLISHED)
+      ->sort('created', 'DESC')
+      ->range(0, 500);
+
+    if ((bool) FieldStorageConfig::loadByName('node', 'field_mga_status')) {
+      $this->applyStatusFilter($query, 'en_cours');
+    }
+
+    $nids = $query->execute();
+    $now = (int) \Drupal::time()->getRequestTime();
+    $items = [];
+
+    if ($nids) {
+      $nodes = $this->entityTypeManager()->getStorage('node')->loadMultiple($nids);
+      foreach (array_values($nids) as $nid) {
+        $node = $nodes[$nid] ?? NULL;
+        if (!$node instanceof NodeInterface) {
+          continue;
+        }
+        $montantInt = $this->montantToInteger($this->fieldString($node, 'field_mga_montant'));
+        if ($montantInt === NULL || $montantInt !== $target) {
+          continue;
+        }
+        if ($this->orderMgaStatusValue($node) !== 'en_cours') {
+          continue;
+        }
+        $items[] = $this->buildListItem($node, $now);
+      }
+    }
+
+    return new JsonResponse([
+      'data' => $items,
+      'montant_int' => $target,
+      'count' => count($items),
+    ]);
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildListItem(NodeInterface $node, int $now): array {
+    $created = (int) $node->getCreatedTime();
+    $remainMin = 20;
+    if ($node->hasField('field_mga_remain_minutes') && !$node->get('field_mga_remain_minutes')->isEmpty()) {
+      $remainMin = max(1, min(600, (int) $node->get('field_mga_remain_minutes')->value));
+    }
+    $deadline = $created + $remainMin * 60;
+    $remaining = max(0, $deadline - $now);
+
+    $path = '/node/' . $node->id();
+    try {
+      $path = Url::fromRoute('entity.node.canonical', ['node' => $node->id()], ['absolute' => FALSE])->toString();
+    }
+    catch (\Throwable $e) {
+      // Keep /node/N.
+    }
+
+    return [
+      'nid' => (int) $node->id(),
+      'title' => $node->getTitle(),
+      'path' => $path,
+      'created' => $created,
+      'remain_minutes' => $remainMin,
+      'deadline' => $deadline,
+      'remaining_seconds' => $remaining,
+      'expired' => $remaining <= 0,
+      'montant' => $this->fieldString($node, 'field_mga_montant'),
+      'phone' => $this->fieldString($node, 'field_mga_phone'),
+      'nom' => $this->fieldString($node, 'field_mga_nom'),
+      'reference' => $this->fieldString($node, 'field_mga_reference'),
+      'currency' => $this->fieldString($node, 'field_mga_currency'),
+      'bank_name' => $this->fieldString($node, 'field_mga_bank_name'),
+      'payment_type' => $this->fieldString($node, 'field_mga_payment_type'),
+      'status' => $this->orderMgaStatusValue($node),
+      'payment_proof_url' => $this->paymentProofUrl($node),
+    ];
+  }
+
+  private function montantToInteger(?string $montant): ?int {
+    if ($montant === NULL || $montant === '') {
+      return NULL;
+    }
+    $s = preg_replace('/[^\d.]/', '', $montant);
+    if ($s === '' || $s === '.') {
+      return NULL;
+    }
+    return (int) floor((float) $s + 1e-9);
   }
 
   /**
@@ -160,7 +241,7 @@ class OrderMgaListApiController extends ControllerBase {
       $or->condition('field_mga_status.value', NULL, 'IS NULL');
       $query->condition($or);
     }
-    elseif ($statusFilter === 'paye' || $statusFilter === 'archive') {
+    elseif (in_array($statusFilter, ['paye', 'pay_en_cours', 'archive'], TRUE)) {
       $query->condition('field_mga_status.value', $statusFilter);
     }
   }

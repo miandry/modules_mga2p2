@@ -47,6 +47,14 @@ mga2p2_form.api.order_mga_list:
   requirements:
     _access: 'TRUE'
 
+mga2p2_form.api.order_mga_match_montant:
+  path: '/mga2p2-form/api/order-mga-match-montant'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\OrderMgaListApiController::matchMontant'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
 mga2p2_form.api.mobile_ussd_settings_get:
   path: '/mga2p2-form/api/mobile-ussd-settings'
   defaults:

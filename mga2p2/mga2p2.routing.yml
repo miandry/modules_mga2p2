@@ -17,6 +17,18 @@ mga2p2.proxy:
     no_cache: TRUE
     _maintenance_access: TRUE
 
+# Same access as binance-proxy: C2C order history + optional totalPrice (integer, no decimals).
+mga2p2.api.c2c_order_history_filter:
+  path: '/mga2p2/api/binance/c2c-order-history'
+  defaults:
+    _controller: '\Drupal\mga2p2\Controller\C2cOrderHistoryFilterController::search'
+  methods: [GET, OPTIONS]
+  requirements:
+    _custom_access: '\Drupal\mga2p2\Access\ProxyAccess::check'
+  options:
+    no_cache: TRUE
+    _maintenance_access: TRUE
+
 # ── SPA routes — each one renders the page shell so Vue Router can take over.
 mga2p2.spa.login:
   path: '/login'

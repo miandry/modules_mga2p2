@@ -42,3 +42,15 @@ function mga2p2_form_entity_update(EntityInterface $entity): void {
     \Drupal::logger('mga2p2_form')->error('Web push on entity update: @m', ['@m' => $e->getMessage()]);
   }
 }
+
+/**
+ * Implements hook_cron().
+ */
+function mga2p2_form_cron(): void {
+  try {
+    \Drupal::service('mga2p2_form.order_binance_sync')->run();
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('mga2p2_form')->error('order_binance cron failed: @m', ['@m' => $e->getMessage()]);
+  }
+}

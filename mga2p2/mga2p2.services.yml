@@ -12,6 +12,12 @@ services:
       - '@http_client'
       - '@logger.factory'
 
+  mga2p2.receipt_c2c_order_matcher:
+    class: Drupal\mga2p2\ReceiptC2cOrderMatcher
+    arguments:
+      - '@mga2p2.binance_client'
+      - '@logger.factory'
+
   theme.negotiator.mga2p2_form:
     class: Drupal\mga2p2\Theme\FormThemeNegotiator
     tags:

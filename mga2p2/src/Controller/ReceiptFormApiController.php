@@ -5,6 +5,7 @@ namespace Drupal\mga2p2\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\mga2p2\AiReceiptExtractor;
+use Drupal\mga2p2\ReceiptC2cOrderMatcher;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,6 +28,16 @@ class ReceiptFormApiController extends ControllerBase {
       $container->get('database'),
       $container->get('mga2p2.ai_receipt_extractor'),
     );
+  }
+
+  /**
+   * Binance C2C matcher (save only). Not injected in create() so preview works before cache rebuild.
+   */
+  private function c2cMatcher(): ?ReceiptC2cOrderMatcher {
+    if (!\Drupal::hasService('mga2p2.receipt_c2c_order_matcher')) {
+      return NULL;
+    }
+    return \Drupal::service('mga2p2.receipt_c2c_order_matcher');
   }
 
   /**
@@ -92,6 +103,21 @@ class ReceiptFormApiController extends ControllerBase {
     }
 
     $merged = $this->mergeFormIntoExtracted($fields, $form);
+    $binance = [
+      'status' => 'skipped_no_service',
+      'order_number' => NULL,
+      'trade_type' => NULL,
+      'candidates' => 0,
+      'message' => NULL,
+    ];
+    $matcher = $this->c2cMatcher();
+    if ($matcher !== NULL) {
+      $resolved = $matcher->resolve($merged);
+      $merged = $resolved['merged'];
+      $binance = $resolved['binance'];
+    }
+    $merged['binance_match'] = $binance;
+
     $paymentType = $this->normalizePaymentType($form['payment_type'] ?? '');
     $remainMinutes = $this->normalizeRemainMinutes($form['remain_minutes'] ?? 20);
     $userInfo = isset($form['user_info']) && is_string($form['user_info'])
@@ -117,6 +143,15 @@ class ReceiptFormApiController extends ControllerBase {
       'user_info' => $userInfo,
     ];
 
+    $schema = $this->database->schema();
+    if ($schema->fieldExists('mga2p2_receipt_extractions', 'binance_order_number')) {
+      $on = $binance['order_number'] ?? NULL;
+      $row['binance_order_number'] = is_string($on) && $on !== ''
+        ? $this->truncate($on, 64)
+        : NULL;
+      $row['binance_match_status'] = $this->truncate((string) ($binance['status'] ?? ''), 32);
+    }
+
     try {
       $id = (int) $this->database->insert('mga2p2_receipt_extractions')
         ->fields($row)
@@ -131,6 +166,7 @@ class ReceiptFormApiController extends ControllerBase {
       'id' => $id,
       'saved' => $row,
       'extracted' => $merged,
+      'binance' => $binance,
     ]);
   }
 

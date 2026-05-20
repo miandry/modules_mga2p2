@@ -5,3 +5,10 @@ services:
       - '@config.factory'
       - '@database'
       - '@logger.factory'
+
+  mga2p2_form.order_binance_sync:
+    class: Drupal\mga2p2_form\Service\OrderBinanceSync
+    arguments:
+      - '@mga2p2.binance_client'
+      - '@entity_type.manager'
+      - '@logger.factory'

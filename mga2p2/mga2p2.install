@@ -82,6 +82,18 @@ function mga2p2_schema() {
         'not null' => FALSE,
         'description' => 'Free-form user / context notes.',
       ],
+      'binance_order_number' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Binance C2C orderNumber when matched on save.',
+      ],
+      'binance_match_status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+        'description' => 'ok, none, ambiguous, skipped_*, error.',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
@@ -182,5 +194,30 @@ function mga2p2_update_9104() {
     if (!$connection->schema()->tableExists($name)) {
       $connection->schema()->createTable($name, $table);
     }
+  }
+}
+
+/**
+ * Add Binance C2C match columns to receipt extractions.
+ */
+function mga2p2_update_9105() {
+  $schema = \Drupal::database()->schema();
+  $table = 'mga2p2_receipt_extractions';
+  if (!$schema->tableExists($table)) {
+    return;
+  }
+  if (!$schema->fieldExists($table, 'binance_order_number')) {
+    $schema->addField($table, 'binance_order_number', [
+      'type' => 'varchar',
+      'length' => 64,
+      'not null' => FALSE,
+    ]);
+  }
+  if (!$schema->fieldExists($table, 'binance_match_status')) {
+    $schema->addField($table, 'binance_match_status', [
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => FALSE,
+    ]);
   }
 }

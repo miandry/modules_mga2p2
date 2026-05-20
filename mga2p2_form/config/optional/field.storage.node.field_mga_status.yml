@@ -17,6 +17,9 @@ settings:
       value: paye
       label: Payé
     -
+      value: pay_en_cours
+      label: 'Payé en cours'
+    -
       value: archive
       label: Archive
   allowed_values_function: ''

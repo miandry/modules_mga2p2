@@ -11,6 +11,7 @@ use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\node\Entity\NodeType;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -197,6 +198,7 @@ function _mga2p2_form_ensure_order_mga_field_status(): void {
         'allowed_values' => [
           'en_cours' => 'En cours',
           'paye' => 'Payé',
+          'pay_en_cours' => 'Payé en cours',
           'archive' => 'Archive',
         ],
       ],
@@ -254,6 +256,7 @@ function _mga2p2_form_ensure_order_mga_field_status(): void {
  */
 function mga2p2_form_install(): void {
   _mga2p2_form_apply_optional_config_and_displays();
+  _mga2p2_form_ensure_order_binance_content_type();
   _mga2p2_form_grant_order_mga_permissions();
   _mga2p2_form_webpush_ensure_vapid_keys();
   _mga2p2_form_ensure_mobile_ussd_config();
@@ -319,6 +322,139 @@ function mga2p2_form_update_9007(): void {
  */
 function mga2p2_form_update_9008(): void {
   _mga2p2_form_grant_mobile_ussd_settings_permission();
+}
+
+/**
+ * Add pay_en_cours allowed value to field_mga_status.
+ */
+function mga2p2_form_update_9009(): void {
+  $storage = FieldStorageConfig::loadByName('node', 'field_mga_status');
+  if (!$storage) {
+    _mga2p2_form_ensure_order_mga_field_status();
+    return;
+  }
+
+  $settings = $storage->getSettings();
+  $allowed = isset($settings['allowed_values']) && is_array($settings['allowed_values'])
+    ? $settings['allowed_values']
+    : [];
+  if (!isset($allowed['pay_en_cours'])) {
+    $allowed['pay_en_cours'] = 'Payé en cours';
+    $settings['allowed_values'] = $allowed;
+    $storage->set('settings', $settings);
+    $storage->save();
+  }
+}
+
+/**
+ * Add content type order_binance with fields for Binance order payload.
+ */
+function mga2p2_form_update_9010(): void {
+  _mga2p2_form_ensure_order_binance_content_type();
+}
+
+/**
+ * Ensures order_binance type and field set matching Binance order payload keys.
+ */
+function _mga2p2_form_ensure_order_binance_content_type(): void {
+  if (!NodeType::load('order_binance')) {
+    NodeType::create([
+      'type' => 'order_binance',
+      'name' => 'Order Binance',
+      'description' => 'Stored Binance C2C order payload.',
+      'new_revision' => TRUE,
+      'preview_mode' => 1,
+      'display_submitted' => FALSE,
+    ])->save();
+  }
+
+  $defs = [
+    'field_binance_order_number' => ['Order Number', 'string', ['max_length' => 64]],
+    'field_binance_adv_no' => ['Adv No', 'string', ['max_length' => 64]],
+    'field_binance_trade_type' => ['Trade Type', 'string', ['max_length' => 16]],
+    'field_binance_asset' => ['Asset', 'string', ['max_length' => 16]],
+    'field_binance_fiat' => ['Fiat', 'string', ['max_length' => 16]],
+    'field_binance_fiat_symbol' => ['Fiat Symbol', 'string', ['max_length' => 16]],
+    'field_binance_amount' => ['Amount', 'string', ['max_length' => 64]],
+    'field_binance_total_price' => ['Total Price', 'string', ['max_length' => 64]],
+    'field_binance_unit_price' => ['Unit Price', 'string', ['max_length' => 64]],
+    'field_binance_order_status' => ['Order Status', 'string', ['max_length' => 32]],
+    'field_binance_create_time' => ['Create Time', 'integer', ['unsigned' => TRUE, 'size' => 'big']],
+    'field_binance_commission' => ['Commission', 'string', ['max_length' => 64]],
+    'field_binance_taker_comm_rate' => ['Taker Commission Rate', 'string', ['max_length' => 32]],
+    'field_binance_taker_comm' => ['Taker Commission', 'string', ['max_length' => 64]],
+    'field_binance_taker_amount' => ['Taker Amount', 'string', ['max_length' => 64]],
+    'field_binance_counterpart_nick' => ['Counterpart Nick Name', 'string', ['max_length' => 128]],
+    'field_binance_pay_method' => ['Pay Method Name', 'string', ['max_length' => 128]],
+    'field_binance_additional_kyc' => ['Additional KYC Verify', 'integer', ['unsigned' => TRUE]],
+  ];
+
+  foreach ($defs as $field_name => [$label, $type, $settings]) {
+    if (!FieldStorageConfig::loadByName('node', $field_name)) {
+      FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $type,
+        'settings' => $settings,
+        'module' => $type === 'integer' ? 'core' : 'core',
+        'locked' => FALSE,
+        'cardinality' => 1,
+        'translatable' => TRUE,
+      ])->save();
+    }
+    if (!FieldConfig::loadByName('node', 'order_binance', $field_name)) {
+      FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'bundle' => 'order_binance',
+        'label' => $label,
+        'required' => FALSE,
+        'translatable' => TRUE,
+        'settings' => [],
+      ])->save();
+    }
+  }
+
+  $form = EntityFormDisplay::load('node.order_binance.default') ?: EntityFormDisplay::create([
+    'targetEntityType' => 'node',
+    'bundle' => 'order_binance',
+    'mode' => 'default',
+    'status' => TRUE,
+  ]);
+  $view = EntityViewDisplay::load('node.order_binance.default') ?: EntityViewDisplay::create([
+    'targetEntityType' => 'node',
+    'bundle' => 'order_binance',
+    'mode' => 'default',
+    'status' => TRUE,
+  ]);
+
+  $weight = 1;
+  foreach ($defs as $field_name => [, $type]) {
+    $formType = $type === 'integer' ? 'number' : 'string_textfield';
+    $viewType = $type === 'integer' ? 'number_integer' : 'string';
+    if (!$form->getComponent($field_name)) {
+      $form->setComponent($field_name, [
+        'type' => $formType,
+        'weight' => $weight,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ]);
+    }
+    if (!$view->getComponent($field_name)) {
+      $view->setComponent($field_name, [
+        'type' => $viewType,
+        'label' => 'above',
+        'weight' => $weight,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ]);
+    }
+    $weight++;
+  }
+  $form->save();
+  $view->save();
 }
 
 /**

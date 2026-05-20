@@ -4,8 +4,8 @@ namespace Drupal\mga2p2_form\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Session\AccountSwitcherInterface;
-use Drupal\Core\Session\UserSession;
 use Drupal\Core\Url;
+use Drupal\mga2p2\ReceiptC2cOrderMatcher;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeTypeInterface;
 use Drupal\user\Entity\User;
@@ -30,6 +30,13 @@ class OrderSaveApiController extends ControllerBase {
     );
   }
 
+  private function c2cMatcher(): ?ReceiptC2cOrderMatcher {
+    if (!\Drupal::hasService('mga2p2.receipt_c2c_order_matcher')) {
+      return NULL;
+    }
+    return \Drupal::service('mga2p2.receipt_c2c_order_matcher');
+  }
+
   /**
    * POST JSON: extracted, filename, form — same shape as mga2p2 receipt-save.
    */
@@ -52,6 +59,19 @@ class OrderSaveApiController extends ControllerBase {
       : '';
 
     $merged = $this->mergeFormIntoExtracted($extracted, $form);
+    $binance = [
+      'status' => 'skipped_no_service',
+      'order_number' => NULL,
+      'trade_type' => NULL,
+      'candidates' => 0,
+      'message' => NULL,
+    ];
+    $matcher = $this->c2cMatcher();
+    if ($matcher !== NULL) {
+      $resolved = $matcher->resolve($merged);
+      $merged = $resolved['merged'];
+      $binance = $resolved['binance'];
+    }
     $title = $this->buildTitle($merged, $filename);
 
     // Same spirit as the receipt JSON API: /form works for anonymous users.
@@ -127,6 +147,7 @@ class OrderSaveApiController extends ControllerBase {
       'nid' => $nid,
       'path' => $path,
       'title' => $node->getTitle(),
+      'binance' => $binance,
     ]);
   }
 
@@ -175,7 +196,7 @@ class OrderSaveApiController extends ControllerBase {
       return 'en_cours';
     }
     $v = strtolower(trim($value));
-    return in_array($v, ['en_cours', 'paye', 'archive'], TRUE) ? $v : 'en_cours';
+    return in_array($v, ['en_cours', 'paye', 'pay_en_cours', 'archive'], TRUE) ? $v : 'en_cours';
   }
 
   private function normalizeRemainMinutes($value): int {

@@ -143,6 +143,7 @@ final class WebPushNotifier {
   private function statusLabel(string $status): string {
     return match ($status) {
       'paye' => 'Payé',
+      'pay_en_cours' => 'Payé en cours',
       'archive' => 'Archive',
       default => 'En cours',
     };

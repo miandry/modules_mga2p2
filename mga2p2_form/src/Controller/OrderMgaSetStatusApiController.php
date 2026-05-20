@@ -30,7 +30,7 @@ class OrderMgaSetStatusApiController extends ControllerBase {
   }
 
   /**
-   * POST JSON: { "nid": 123, "status": "paye" } — status: en_cours | paye | archive.
+   * POST JSON: { "nid": 123, "status": "paye" } — status: en_cours | paye | pay_en_cours | archive.
    *
    * Web Push is sent from hook_entity_update() when the status field changes.
    */
@@ -49,9 +49,9 @@ class OrderMgaSetStatusApiController extends ControllerBase {
     $status = isset($body['status']) && is_string($body['status'])
       ? strtolower(trim($body['status']))
       : 'paye';
-    $allowed = ['en_cours', 'paye', 'archive'];
+    $allowed = ['en_cours', 'paye', 'pay_en_cours', 'archive'];
     if (!in_array($status, $allowed, TRUE)) {
-      return new JsonResponse(['error' => 'Invalid status. Use: en_cours, paye, archive.'], 400);
+      return new JsonResponse(['error' => 'Invalid status. Use: en_cours, paye, pay_en_cours, archive.'], 400);
     }
 
     $node = Node::load($nid);
