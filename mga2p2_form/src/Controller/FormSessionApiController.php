@@ -3,6 +3,7 @@
 namespace Drupal\mga2p2_form\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\mga2p2_form\Access\FormAdministratorAccess;
 use Drupal\user\Entity\User;
 use Drupal\user\UserAuthInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -34,10 +35,7 @@ final class FormSessionApiController extends ControllerBase {
     if ($account->isAuthenticated()) {
       return new JsonResponse([
         'logged_in' => TRUE,
-        'user' => [
-          'uid' => (int) $account->id(),
-          'name' => $account->getAccountName(),
-        ],
+        'user' => FormAdministratorAccess::userPayload($account),
       ], 200, self::NO_STORE);
     }
     return new JsonResponse(['logged_in' => FALSE], 200, self::NO_STORE);
@@ -51,10 +49,7 @@ final class FormSessionApiController extends ControllerBase {
       $account = $this->currentUser();
       return new JsonResponse([
         'logged_in' => TRUE,
-        'user' => [
-          'uid' => (int) $account->id(),
-          'name' => $account->getAccountName(),
-        ],
+        'user' => FormAdministratorAccess::userPayload($account),
         'message' => 'Already logged in.',
       ], 200, self::NO_STORE);
     }
@@ -86,10 +81,7 @@ final class FormSessionApiController extends ControllerBase {
 
     return new JsonResponse([
       'logged_in' => TRUE,
-      'user' => [
-        'uid' => (int) $user->id(),
-        'name' => $user->getAccountName(),
-      ],
+      'user' => FormAdministratorAccess::userPayload($user),
     ], 200, self::NO_STORE);
   }
 

@@ -3,6 +3,7 @@
 namespace Drupal\mga2p2_form\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\mga2p2_form\Access\FormAdministratorAccess;
 use Drupal\mga2p2_form\Service\BinanceAdsUpdater;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,6 +30,10 @@ final class BinanceAdsUpdateApiController extends ControllerBase {
    * POST JSON: { "advNo": "…", "price": "4600", "asset": "USDT", "fiat": "MGA" }.
    */
   public function updatePrice(Request $request): JsonResponse {
+    if ($denied = FormAdministratorAccess::denyUnlessAdministrator($this->currentUser())) {
+      return $denied;
+    }
+
     $raw = $request->getContent();
     $body = json_decode($raw, TRUE);
     if (!is_array($body)) {

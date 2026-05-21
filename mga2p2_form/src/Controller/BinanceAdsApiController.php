@@ -3,6 +3,7 @@
 namespace Drupal\mga2p2_form\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\mga2p2_form\Access\FormAdministratorAccess;
 use Drupal\mga2p2_form\Service\BinanceAdsLoader;
 use Drupal\mga2p2_form\Service\BinanceMarketAdsSearch;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -35,6 +36,10 @@ final class BinanceAdsApiController extends ControllerBase {
    * When adv_no is set, returns a single matching ad (or empty + error).
    */
   public function list(Request $request): JsonResponse {
+    if ($denied = FormAdministratorAccess::denyUnlessAdministrator($this->currentUser())) {
+      return $denied;
+    }
+
     $page = max(1, (int) $request->query->get('page', 1));
     $rows = max(1, min(100, (int) $request->query->get('rows', 50)));
 
@@ -69,6 +74,10 @@ final class BinanceAdsApiController extends ControllerBase {
    * Returns top 5 highest + top 5 lowest competitor P2P prices for repricing.
    */
   public function marketPrices(Request $request): JsonResponse {
+    if ($denied = FormAdministratorAccess::denyUnlessAdministrator($this->currentUser())) {
+      return $denied;
+    }
+
     $assetParam = $request->query->get('asset', '');
     $fiatParam = $request->query->get('fiat', '');
     $tradeParam = $request->query->get('tradeType', '');

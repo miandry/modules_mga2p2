@@ -3,6 +3,7 @@
 namespace Drupal\mga2p2_form\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\mga2p2_form\Access\FormAdministratorAccess;
 use Drupal\mga2p2_form\Service\C2cOrderActionService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,6 +30,10 @@ final class BinanceC2cOrderActionApiController extends ControllerBase {
    * POST JSON: { "orderNo": "…", "action": "mark_paid"|"release"|"cancel" }.
    */
   public function action(Request $request): JsonResponse {
+    if ($denied = FormAdministratorAccess::denyUnlessAdministrator($this->currentUser())) {
+      return $denied;
+    }
+
     $raw = $request->getContent();
     $body = json_decode($raw, TRUE);
     if (!is_array($body)) {

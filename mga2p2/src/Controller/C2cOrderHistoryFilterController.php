@@ -35,6 +35,10 @@ final class C2cOrderHistoryFilterController extends ControllerBase {
       return $this->withCors(new Response('', 204));
     }
 
+    if ($denied = $this->denyUnlessAdministrator()) {
+      return $denied;
+    }
+
     if (!$this->client->isConfigured()) {
       return $this->withCors(new JsonResponse([
         'error' => 'Binance API credentials are not configured.',
@@ -169,6 +173,17 @@ final class C2cOrderHistoryFilterController extends ControllerBase {
       return (int) floor((float) $value + 1e-12);
     }
     return NULL;
+  }
+
+  private function denyUnlessAdministrator(): ?Response {
+    $account = $this->currentUser();
+    if ($account->isAuthenticated() && ((int) $account->id() === 1 || in_array('administrator', $account->getRoles(), TRUE))) {
+      return NULL;
+    }
+    return $this->withCors(new JsonResponse([
+      'error' => 'Accès réservé aux administrateurs.',
+      'code' => 'administrator_required',
+    ], 403));
   }
 
   private function withCors(Response $response): Response {
