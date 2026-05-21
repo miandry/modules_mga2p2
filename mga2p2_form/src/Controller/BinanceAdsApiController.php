@@ -4,6 +4,7 @@ namespace Drupal\mga2p2_form\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\mga2p2_form\Service\BinanceAdsLoader;
+use Drupal\mga2p2_form\Service\BinanceMarketAdsSearch;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,11 +18,13 @@ final class BinanceAdsApiController extends ControllerBase {
 
   public function __construct(
     protected BinanceAdsLoader $adsLoader,
+    protected BinanceMarketAdsSearch $marketSearch,
   ) {}
 
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('mga2p2_form.binance_ads_loader'),
+      $container->get('mga2p2_form.binance_market_ads_search'),
     );
   }
 
@@ -57,6 +60,53 @@ final class BinanceAdsApiController extends ControllerBase {
     }
 
     $status = ($result['data'] === [] && !empty($result['error'])) ? 502 : 200;
+    return new JsonResponse($payload, $status, self::NO_STORE);
+  }
+
+  /**
+   * GET ?asset=USDT&fiat=MGA&tradeType=SELL&adv_no=…
+   *
+   * Returns top 5 highest + top 5 lowest competitor P2P prices for repricing.
+   */
+  public function marketPrices(Request $request): JsonResponse {
+    $assetParam = $request->query->get('asset', '');
+    $fiatParam = $request->query->get('fiat', '');
+    $tradeParam = $request->query->get('tradeType', '');
+    $advNoParam = $request->query->get('adv_no', '');
+
+    $asset = is_string($assetParam) ? trim($assetParam) : '';
+    $fiat = is_string($fiatParam) ? trim($fiatParam) : '';
+    $tradeType = is_string($tradeParam) ? trim($tradeParam) : '';
+    $advNo = is_string($advNoParam) ? trim($advNoParam) : NULL;
+
+    if ($asset === '' || $fiat === '') {
+      return new JsonResponse(['error' => 'asset and fiat are required.'], 400, self::NO_STORE);
+    }
+    if ($tradeType === '') {
+      $tradeType = 'BUY';
+    }
+
+    $pages = max(3, min(8, (int) $request->query->get('pages', 5)));
+
+    $result = $this->marketSearch->competitorPrices($asset, $fiat, $tradeType, $advNo, $pages);
+
+    $payload = [
+      'data' => $result['data'] ?? [],
+      'highest' => $result['highest'],
+      'lowest' => $result['lowest'],
+      'total' => $result['total'],
+      'searchTradeType' => $result['searchTradeType'],
+      'adTradeType' => $result['adTradeType'] ?? $tradeType,
+      'source' => $result['source'],
+      'minPrice' => $result['minPrice'] ?? NULL,
+      'maxPrice' => $result['maxPrice'] ?? NULL,
+      'avgPrice' => $result['avgPrice'] ?? NULL,
+    ];
+    if (!empty($result['error'])) {
+      $payload['error'] = $result['error'];
+    }
+
+    $status = ($result['total'] === 0 && !empty($result['error'])) ? 502 : 200;
     return new JsonResponse($payload, $status, self::NO_STORE);
   }
 

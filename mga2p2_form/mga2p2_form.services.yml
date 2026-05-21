@@ -25,3 +25,15 @@ services:
       - '@mga2p2.binance_client'
       - '@logger.factory'
       - '@mga2p2_form.binance_ads_loader'
+
+  mga2p2_form.c2c_order_action:
+    class: Drupal\mga2p2_form\Service\C2cOrderActionService
+    arguments:
+      - '@mga2p2.binance_client'
+      - '@logger.factory'
+
+  mga2p2_form.binance_market_ads_search:
+    class: Drupal\mga2p2_form\Service\BinanceMarketAdsSearch
+    arguments:
+      - '@mga2p2.binance_client'
+      - '@logger.factory'

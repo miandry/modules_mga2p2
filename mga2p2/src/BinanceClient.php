@@ -176,12 +176,23 @@ class BinanceClient {
 
     $params = $this->filterScalarParams($params);
 
-    if ($path === '/sapi/v1/c2c/orderMatch/markOrderAsPaid') {
+    $orderMatchPaths = [
+      '/sapi/v1/c2c/orderMatch/markOrderAsPaid',
+      '/sapi/v1/c2c/orderMatch/releaseCoin',
+      '/sapi/v1/c2c/orderMatch/cancelOrder',
+      '/sapi/v1/c2c/orderMatch/checkIfAllowedCancelOrder',
+      '/sapi/v1/c2c/orderMatch/checkIfCanReleaseCoin',
+    ];
+    if (in_array($path, $orderMatchPaths, TRUE)) {
       $orderRef = (string) ($params['orderNo'] ?? $params['orderNumber'] ?? '');
       unset($params['orderNumber']);
       if ($orderRef !== '') {
         $params['orderNo'] = $orderRef;
       }
+    }
+
+    if ($path === '/sapi/v1/c2c/orderMatch/markOrderAsPaid') {
+      $orderRef = (string) ($params['orderNo'] ?? '');
       $payIdPresent = isset($params['payId']) && is_numeric($params['payId']) && (float) $params['payId'] > 0;
       if (!$payIdPresent && $orderRef !== '') {
         $fetched = $this->fetchC2CPayIdForOrder($apiKey, $secretKey, $recvWindow, $orderRef);

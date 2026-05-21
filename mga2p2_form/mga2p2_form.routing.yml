@@ -63,10 +63,26 @@ mga2p2_form.api.binance_ads:
   requirements:
     _access: 'TRUE'
 
+mga2p2_form.api.binance_ads_market_prices:
+  path: '/mga2p2-form/api/binance/ads/market-prices'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\BinanceAdsApiController::marketPrices'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
 mga2p2_form.api.binance_ads_update_price:
   path: '/mga2p2-form/api/binance/ads/price'
   defaults:
     _controller: '\Drupal\mga2p2_form\Controller\BinanceAdsUpdateApiController::updatePrice'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.binance_c2c_order_action:
+  path: '/mga2p2-form/api/binance/c2c-order/action'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\BinanceC2cOrderActionApiController::action'
   methods: [POST, OPTIONS]
   requirements:
     _access: 'TRUE'
