@@ -55,6 +55,22 @@ mga2p2_form.api.order_mga_match_montant:
   requirements:
     _access: 'TRUE'
 
+mga2p2_form.api.binance_ads:
+  path: '/mga2p2-form/api/binance/ads'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\BinanceAdsApiController::list'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+mga2p2_form.api.binance_ads_update_price:
+  path: '/mga2p2-form/api/binance/ads/price'
+  defaults:
+    _controller: '\Drupal\mga2p2_form\Controller\BinanceAdsUpdateApiController::updatePrice'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
 mga2p2_form.api.mobile_ussd_settings_get:
   path: '/mga2p2-form/api/mobile-ussd-settings'
   defaults:

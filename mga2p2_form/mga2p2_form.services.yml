@@ -12,3 +12,16 @@ services:
       - '@mga2p2.binance_client'
       - '@entity_type.manager'
       - '@logger.factory'
+
+  mga2p2_form.binance_ads_loader:
+    class: Drupal\mga2p2_form\Service\BinanceAdsLoader
+    arguments:
+      - '@mga2p2.binance_client'
+      - '@logger.factory'
+
+  mga2p2_form.binance_ads_updater:
+    class: Drupal\mga2p2_form\Service\BinanceAdsUpdater
+    arguments:
+      - '@mga2p2.binance_client'
+      - '@logger.factory'
+      - '@mga2p2_form.binance_ads_loader'

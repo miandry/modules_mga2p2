@@ -247,6 +247,84 @@ class BinanceClient {
   }
 
   /**
+   * Signed POST for C2C Agent routes (JSON body; HMAC on query string only).
+   *
+   * @param string $path
+   *   e.g. "/sapi/v1/c2c/agent/ads/listWithPagination".
+   * @param array<string, mixed> $body
+   *   JSON request body (not included in signature).
+   *
+   * @return array{status:int, body:string, error:?string}
+   */
+  public function signedAgentPost(string $path, array $body = []): array {
+    if (!function_exists('curl_init')) {
+      $this->logger->error('PHP cURL extension is not enabled.');
+      return ['status' => 503, 'body' => '', 'error' => 'PHP cURL extension is not enabled on this server (enable php-curl in MAMP).'];
+    }
+
+    $config = $this->configFactory->get('mga2p2.settings');
+    $apiKey = (string) $config->get('api_key');
+    $secretKey = (string) $config->get('secret_key');
+    $recvWindow = (int) ($config->get('recv_window') ?? 10000);
+
+    if ($apiKey === '' || $secretKey === '') {
+      return ['status' => 503, 'body' => '', 'error' => 'Binance API credentials are not configured. Visit /admin/config/system/mga2p2.'];
+    }
+
+    $queryParams = [
+      'recvWindow' => $recvWindow,
+      'timestamp' => (int) round(microtime(TRUE) * 1000),
+    ];
+    $query = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+    $signature = hash_hmac('sha256', $query, $secretKey);
+    $url = self::API_HOST . $path . '?' . $query . '&signature=' . $signature;
+
+    $json = json_encode($body, JSON_UNESCAPED_UNICODE);
+    if ($json === FALSE) {
+      return ['status' => 500, 'body' => '', 'error' => 'Could not encode JSON body.'];
+    }
+
+    $headers = $this->binanceRequestHeaders($apiKey, $path);
+    $headers[] = 'Content-Type: application/json';
+
+    $ch = curl_init($url);
+    if ($ch === FALSE) {
+      return ['status' => 503, 'body' => '', 'error' => 'curl_init() failed.'];
+    }
+
+    curl_setopt_array($ch, [
+      CURLOPT_RETURNTRANSFER => TRUE,
+      CURLOPT_POST => TRUE,
+      CURLOPT_POSTFIELDS => $json,
+      CURLOPT_HTTPHEADER => $headers,
+      CURLOPT_TIMEOUT => 25,
+      CURLOPT_CONNECTTIMEOUT => 10,
+      CURLOPT_FOLLOWLOCATION => FALSE,
+      CURLOPT_SSL_VERIFYPEER => TRUE,
+    ]);
+
+    $responseBody = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($responseBody === FALSE) {
+      $this->logger->error('Binance agent POST failure: @err path=@path', ['@err' => $err, '@path' => $path]);
+      return ['status' => 502, 'body' => '', 'error' => 'Upstream cURL error: ' . $err];
+    }
+
+    if ($code >= 400) {
+      $this->logger->warning('Binance agent POST HTTP @code @path body=@body', [
+        '@code' => $code,
+        '@path' => $path,
+        '@body' => substr((string) $responseBody, 0, 800),
+      ]);
+    }
+
+    return ['status' => $code, 'body' => (string) $responseBody, 'error' => NULL];
+  }
+
+  /**
    * Calls getUserOrderDetail to obtain payId for markOrderAsPaid (BUY flow).
    */
   private function fetchC2CPayIdForOrder(string $apiKey, string $secretKey, int $recvWindow, string $orderRef): ?int {
